@@ -1,0 +1,362 @@
+<html>
+
+<head>
+     <!-- Title -->
+    <title> Tuition </title>
+    <!--stylesheet and vue.js links -->
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.10/dist/vue.js"></script>
+    
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1 v-text="sitename"> </h1>
+            <!-- Check out button: disabled when cart is empty and enabled when a lesson is added to cart -->
+            <button v-on:click="showCheckout" class="chkoutButton" v-bind:disabled = "emptyCart(classes)">
+                {{cartItemCount}}
+                <i class="fas fa-shopping-cart"></i> CheckOut
+            </button>
+        </header>
+        <main>            
+          <!-- Lessons Page displayed -->
+            <div v-if="showClasses">
+                <div class="search">
+                    <p> <strong>Search:</strong>    <input type="search" v-model="SearchLessons" v-on:keyup="showSearch"  placeholder="Search lessons..." /> </p>
+                    </div>
+                    <!-- Sort -->
+                <div class="sort">
+                    <!-- Radio Buttons to choose the parameter for sorting -->
+                    <strong> Sort By </strong> <br>
+                    <input type="radio" value="Subject" v-model="sortb" /> 
+                    <label for="subject">Subject</label> <br>
+                    <input type="radio" value="Location" v-model="sortb" />
+                    <label for="location">Location</label> <br>
+                    <input type="radio" value="Price" v-model="sortb" />
+                    <label for="price">Price</label> <br>
+                    <input type="radio" value="Space" v-model="sortb" />
+                    <label for="space">Space</label> <br>
+                    <!-- Radio Buttons to choose the order for sorting -->
+                    <strong> Order </strong> <br>
+                    <input type="radio" value="a" v-model="sorto" />
+                    <label for="a">Ascending</label> <br>
+                    <input type="radio" value="d" v-model="sorto" />
+                    <label for="d">Descending</label> <br>
+                </div>
+                <!-- Searching results -->
+                <div v-if="checkBar">
+                    <div class="lessonset">
+                    <div v-for="(classes, index) in classesList" :key="index">
+                        
+                        <fieldset>
+                            <strong> Search Result: </strong>
+                            <!-- classes information -->
+                            <img v-bind:src="classes.img" alt="" height="300px" width="300px">
+                            <h2 v-text="classes.subject"></h2>
+                            <p>Price: {{ classes.price }}</p>
+                            <p>Location: {{ classes.location }}</p>
+                            <p>Spaces: {{ classes.dSpace }}</p>
+                            <!-- Add to Cart Button -->
+                            <button v-on:click="addToCart(classes)" v-bind:disabled="!canAddToCart(classes)">
+                              Add to Cart   <i class="fas fa-shopping-cart"></i> 
+                            </button> 
+                        </fieldset> 
+                        </div>
+
+                    </div>
+                </div>
+                <!-- Lessons Display -->
+                <div class="lessonset">
+                    
+                <div  v-for="classes in sortedClasses">
+                    <fieldset>
+                        <!-- classes information -->
+                        <img v-bind:src="classes.img" alt="" height="300px" width="300px">
+                        <h2 v-text="classes.subject"></h2>
+                        <p>Price: {{ classes.price }}</p>
+                        <p>Location: {{ classes.location }}</p>
+                        <p>Spaces: {{ classes.dSpace }}</p>
+                        <!-- Add to Cart Button -->
+                        <button v-on:click="addToCart(classes)" v-bind:disabled="!canAddToCart(classes)">
+                            <!-- icon to add to cart -->
+                            <i class = "fas fa-shopping-cart"> </i> Add to Cart  
+                        </button>
+                     
+                    </fieldset>
+                </div>
+               
+            </div>
+        </div>
+        <!-- Checkout Page Display -->
+            <div v-else class="myCart" >
+                
+                <strong>My Cart:</strong>
+                <div v-for="classes in showCart">
+                    
+                    
+                       
+                        <!-- classes information -->
+                        
+                        <h2 v-text="classes"></h2>
+                        
+                        <button v-on:click="removeClass(classes)" >
+                            Remove Item
+                        </button> 
+                   
+               
+                </div>
+                
+
+                <div class="checkOutBox">
+                    <!--Check Out Details  -->
+                <h2>CheckOut</h2>
+                <p>
+                    <strong> Name: </strong>
+                    <input v-model.trim="order.name" required/>
+                </p>
+                <p>
+                    <strong> Phone: </strong>
+                    <input v-model.trim="order.phone" type="number" required />
+                </p>
+
+             <!-- Order Button for placing order -->
+                <button v-on:click="submitForm">PLACE ORDER</button>
+                
+            
+            
+        </div>
+    </div>
+    </div>
+        </main>
+    </div>
+    <script type="text/javascript">
+        // Vue JS initialization
+        var webstore = new Vue({
+            el: '#app',
+            data: { // storing the data
+                sitename: 'Lessons', //naming the sitename
+                classes: [],
+                
+                cart: [], // array to store items in cart
+
+                SearchLessons: '', //Array for storing all lesson
+                searchInput: "", //to store search input from user
+                checkBar: false,
+ 
+                cartName: [],
+
+                showClasses: true,
+                order: {
+                    name: '',
+                    phone: ''
+
+                },
+               //to sort according to parameters
+                sortb: "Subject", 
+                sorto: "a",
+
+                
+
+            },
+            methods: {
+                //Add to cart method and to check if spaces of the product is more than 0 
+                addToCart(classes) {
+                    
+                    if (classes.spaces > 0) {
+                     classes.dSpace -= 1; // confirm there are enough space left in class
+                    }
+                    this.cart.push(classes.id);
+                    console.log(this.cart);
+                }, 
+                //To display CheckOut Page
+
+                showCheckout() {
+                    this.showClasses = this.showClasses ? false : true;
+                },
+                // To show search results
+                showSearch() {
+                    this.checkBar = true;
+                },
+                // To place an order
+                submitForm() {
+                    
+
+                    fetch("http://localhost:3000/collection/orders", {
+        method: "POST",
+        body: JSON.stringify({
+          classes: this.cartName,
+          totalcourses: this.cart.length,
+          name: this.order.name,
+          phone: this.order.phone,
+          
+        }),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8",
+        },
+      })
+        .then((response) => response.json())
+        .then((json) => console.log(json))
+        .catch((error) => console.error(error));
+alert("Order Placed!")
+        
+                },
+                // To get the number of times a product is added to cart using its id
+                cartCount(id) {
+                    let count = 0;
+                    for (let i = 0; i < this.cart.length; i++) {
+                        if (this.cart[i] === id) {
+                            count++;
+                        }
+                    }
+                    return count;
+                },
+                // To check if the particular lesson has space left for more students
+                canAddToCart(classes) {
+                    return classes.spaces > this.cartCount(classes.id);
+                },
+                // To check if the cart is empty
+                emptyCart(classes){
+                    return this.cartItemCount == 0;
+                },
+                // To remove a cart item
+                removeClass(classes){
+                    
+
+                    for (let j = 0; j < this.classes.length; j++) {
+                        if (classes === this.classes[j].subject) {
+                            const index = this.cart.indexOf(this.classes[j].id);
+                            if (index > -1) {
+                                this.cart.splice(index, 1); 
+                                }
+                             this.classes[j].dSpace += 1;
+                        }
+                    }
+            }
+           
+        },
+            computed: {
+
+                sortedClasses() {
+                   
+                    // Setting up ascending and descending algorithm
+
+                    if (this.sorto == "a"){
+                        a = 1;
+                        b = -1;
+                    } else if (this.sorto == "d") {
+                        a = -1;
+                        b = 1;
+                    }
+                    // Calculation if the selected parameter is Subject
+                    if (this.sortb == "Subject") {
+                        function compare(x, y) {
+                        if (x.subject > y.subject)
+                            return a;
+                        if (x.subject < y.subject)
+                            return b;
+                        return 0;
+                    }
+                    // Calculation if the selected parameter is Location
+                    } else if (this.sortb == "Location") {
+                        function compare(x, y) {
+                        if (x.location > y.location)
+                            return a;
+                        if (x.location < y.location)
+                            return b;
+                        return 0; }
+                    // Calculation if the selected parameter is Price
+                    } else if (this.sortb == "Price") {
+                        function compare(x, y) {
+                        if (x.price > y.price)
+                            return a;
+                        if (x.price < y.price)
+                            return b;
+                        return 0;
+                    // Calculation if the selected parameter is Space
+                    } } else if (this.sortb == "Space") {
+                        function compare(x, y) {
+                        if (x.dSpace > y.dSpace)
+                            return a;
+                        if (x.dSpace < y.dSpace)
+                            return b;
+                        return 0;
+                    } }
+
+
+
+                    return this.classes.sort(compare);
+
+                },
+
+                // Counting the total number of items in cart
+
+                cartItemCount: function() {
+                    return this.cart.length || "";
+                },
+                // to display the items in cart at the time of check out
+                showCart(){
+                    
+                    let order = [];
+
+                    for (let i = 0; i < this.cart.length; i++) {
+                        for (let j = 0; j < this.classes.length; j++) {
+                        if (this.cart[i] === this.classes[j].id) { //retrieving the id of the items in cart
+                            order.push(this.classes[j].subject); //pushing the subject for the particular id to order
+                            this.cartName.push(this.classes[j].subject);
+                        }
+                        }
+                    }
+
+                    return order; //display order
+                },
+                //Search function
+                classesList() {
+
+                  this.checkBar = true
+
+                  if (this.SearchLessons.trim().length > 0) { 
+                  fetch("http://localhost:3000/collection/lessons/search", {
+        method: "POST",
+        body: JSON.stringify({
+          search: this.SearchLessons,
+        }),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8",
+        },
+      })
+        .then((response) => response.json())
+        .then((data) => {
+            webstore.classes = data;
+        })
+        .catch((error) => console.error(error));
+
+    } else {
+        this.checkBar = false
+
+        fetch("http://localhost:3000/collection/lessons").then(function (response) {
+      response.json().then(function (json) {
+        // storing the response
+        webstore.classes = json;
+      });
+    });
+    }
+            
+                },
+
+            },
+            created: function () {
+    // retrieving data from the server
+    fetch("http://localhost:3000/collection/lessons").then(function (response) {
+      response.json().then(function (json) {
+        // storing the response
+        webstore.classes = json;
+      });
+    });
+  }, 
+
+        });
+    </script>
+</body>
+
+</html>
